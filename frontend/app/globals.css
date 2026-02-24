@@ -2,7 +2,12 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0d0d0d;
+  --sidebar-bg: #f9f9f9;
+  --sidebar-hover: #ececec;
+  --border-color: #e5e7eb;
+  --user-bubble: #f4f4f4;
+  --input-bg: #ffffff;
 }
 
 @theme inline {
@@ -12,15 +17,38 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Söhne", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Override Ant Design defaults to respect light mode */
+.ant-btn-primary {
+  background-color: #10a37f !important;
+  border-color: #10a37f !important;
+}
+.ant-btn-primary:hover {
+  background-color: #0d8f6e !important;
+  border-color: #0d8f6e !important;
 }
