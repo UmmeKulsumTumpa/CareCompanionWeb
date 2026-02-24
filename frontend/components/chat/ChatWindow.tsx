@@ -40,7 +40,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
                 {isEmpty ? (
                     <div className="flex flex-col items-center justify-center h-full text-center px-4 pb-32">
                         <div className="w-12 h-12 rounded-2xl bg-[#10a37f] flex items-center justify-center mb-5 shadow-sm">
-                            <SparklesIcon size={22} className="text-white" />
+                            <SparklesIcon size={22} className="text-white" suppressHydrationWarning />
                         </div>
                         <h2 className="text-2xl font-semibold text-gray-900 mb-2">How can I help you today?</h2>
                         <p className="text-sm text-gray-500 mb-8 max-w-sm">

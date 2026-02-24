@@ -63,7 +63,7 @@ export default function MessageInput({ onSend, disabled }: MessageInputProps) {
                                 : "bg-gray-200 text-gray-400 cursor-not-allowed"
                         }`}
                     >
-                        <ArrowUpIcon size={16} strokeWidth={2.5} />
+                        <ArrowUpIcon size={16} strokeWidth={2.5} suppressHydrationWarning />
                     </button>
                 </div>
                 <p className="text-center text-xs text-gray-400 mt-2">

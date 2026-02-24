@@ -97,7 +97,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                                 : "text-gray-700 hover:bg-(--sidebar-hover)"
                         }`}
                     >
-                        <MessageSquareIcon size={14} className="shrink-0 text-gray-400 group-hover:text-gray-600" />
+                        <MessageSquareIcon size={14} className="shrink-0 text-gray-400 group-hover:text-gray-600" suppressHydrationWarning />
                         <span className="truncate">{conv.title ?? "Conversation"}</span>
                     </button>
                 ))}
@@ -115,7 +115,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                     title="Open sidebar"
                     className="p-2 rounded-lg hover:bg-(--sidebar-hover) text-gray-600 hover:text-gray-900 transition-colors"
                 >
-                    <PanelLeftIcon size={18} />
+                    <PanelLeftIcon size={18} suppressHydrationWarning />
                 </button>
 
                 {/* New chat */}
@@ -124,7 +124,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                     title="New chat"
                     className="p-2 rounded-lg hover:bg-(--sidebar-hover) text-gray-600 hover:text-gray-900 transition-colors"
                 >
-                    <PlusIcon size={18} />
+                    <PlusIcon size={18} suppressHydrationWarning />
                 </button>
 
                 {/* Spacer + avatar at bottom */}
@@ -140,7 +140,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                     </div>
                 ) : (
                     <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mb-1">
-                        <UserIcon size={14} className="text-gray-600" />
+                        <UserIcon size={14} className="text-gray-600" suppressHydrationWarning />
                     </div>
                 )}
             </aside>
@@ -159,7 +159,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                         title="Close sidebar"
                         className="p-2 rounded-lg hover:bg-(--sidebar-hover) text-gray-600 hover:text-gray-900 transition-colors"
                     >
-                        <PanelLeftIcon size={18} />
+                        <PanelLeftIcon size={18} suppressHydrationWarning />
                     </button>
                     <Link
                         href="/"
@@ -176,7 +176,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                     title="New chat"
                     className="p-2 rounded-lg hover:bg-(--sidebar-hover) text-gray-600 hover:text-gray-900 transition-colors"
                 >
-                    <PlusIcon size={18} />
+                    <PlusIcon size={18} suppressHydrationWarning />
                 </button>
             </div>
 
@@ -235,6 +235,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                         <ChevronDownIcon
                             size={14}
                             className={`shrink-0 text-gray-400 transition-transform ${userMenuOpen ? "rotate-180" : ""}`}
+                            suppressHydrationWarning
                         />
                     </button>
 
@@ -244,7 +245,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                                 onClick={handleLogout}
                                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
                             >
-                                <LogOutIcon size={15} />
+                                <LogOutIcon size={15} suppressHydrationWarning />
                                 Sign out
                             </button>
                         </div>
@@ -256,7 +257,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                 <div className="px-2 pb-3 border-t border-(--border-color) pt-2">
                     <div className="flex items-center gap-3 px-3 py-2">
                         <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center shrink-0">
-                            <UserIcon size={14} className="text-gray-600" />
+                            <UserIcon size={14} className="text-gray-600" suppressHydrationWarning />
                         </div>
                         <p className="text-sm text-gray-500">Guest</p>
                     </div>
