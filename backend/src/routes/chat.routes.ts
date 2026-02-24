@@ -10,6 +10,7 @@ const router = Router();
 router.post("/", validate(chatMessageSchema), guestMiddleware, chatController.sendMessage);
 router.get("/history", authMiddleware, chatController.getHistory);
 router.get("/history/conversations/:conversationId", authMiddleware, chatController.getConversationMessages);
-router.get("/guest-history", guestMiddleware, chatController.getGuestHistory);
+router.delete("/history/conversations/:conversationId", authMiddleware, chatController.deleteConversation);
+router.patch("/history/conversations/:conversationId", authMiddleware, chatController.renameConversation);
 
 export default router;

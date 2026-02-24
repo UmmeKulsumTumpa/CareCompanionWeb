@@ -20,3 +20,11 @@ export async function findByUserId(userId: string): Promise<Conversation[]> {
 export async function updateTimestamp(id: string): Promise<void> {
     await db<Conversation>("conversations").where({ id }).update({ updated_at: new Date() });
 }
+
+export async function updateTitle(id: string, title: string): Promise<void> {
+    await db<Conversation>("conversations").where({ id }).update({ title, updated_at: new Date() });
+}
+
+export async function deleteById(id: string): Promise<void> {
+    await db<Conversation>("conversations").where({ id }).delete();
+}

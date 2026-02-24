@@ -3,11 +3,11 @@ import * as chatService from "../services/chat.service";
 
 export async function sendMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-        const { query, conversationId } = req.body;
+        const { query, conversationId, guestChatHistory } = req.body;
         const userId = req.user?.id ?? null;
         const guestSessionId = req.guestSessionId ?? null;
 
-        const result = await chatService.sendMessage({ query, conversationId, userId, guestSessionId });
+        const result = await chatService.sendMessage({ query, conversationId, userId, guestSessionId, guestChatHistory });
         res.status(200).json(result);
     } catch (err) {
         next(err);
@@ -33,10 +33,24 @@ export async function getConversationMessages(req: Request, res: Response, next:
     }
 }
 
-export async function getGuestHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function deleteConversation(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-        const messages = await chatService.getGuestSessionMessages(req.guestSessionId!);
-        res.status(200).json({ messages });
+        await chatService.deleteConversation(req.params.conversationId, req.user!.id);
+        res.status(204).send();
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function renameConversation(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const { title } = req.body;
+        if (!title || typeof title !== "string" || !title.trim()) {
+            res.status(400).json({ message: "Title is required" });
+            return;
+        }
+        await chatService.renameConversation(req.params.conversationId, req.user!.id, title);
+        res.status(200).json({ message: "Renamed" });
     } catch (err) {
         next(err);
     }

@@ -2,8 +2,10 @@
 
 import { useState, useCallback } from "react";
 import * as chatApi from "@/lib/api/chat";
-import { Message, GuestMessage, RelatedExperience, SourceReference } from "@/types";
+import { Message, RelatedExperience, SourceReference } from "@/types";
 import useAuthStore from "@/store/authStore";
+import { useGuestSession } from "@/hooks/useGuestSession";
+import { getGuestSessionId } from "@/lib/utils/guestSession";
 
 interface ChatMessage {
     id: string;
@@ -16,11 +18,21 @@ interface ChatMessage {
 
 export function useChat(conversationId?: string) {
     const { isAuthenticated } = useAuthStore();
+    const { startGuestSession } = useGuestSession();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [loading, setLoading] = useState(false);
     const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(conversationId);
 
     const sendMessage = useCallback(async (query: string) => {
+        // Ensure a guest session exists before sending if the user is not logged in
+        if (!isAuthenticated && !getGuestSessionId()) {
+            await startGuestSession();
+        }
+
+        // Snapshot current history BEFORE adding the new user message.
+        // For guests this is forwarded to the backend so the ML model has context.
+        const historySnapshot = messages.map((m) => ({ role: m.role, content: m.content }));
+
         const userMsg: ChatMessage = {
             id: crypto.randomUUID(),
             role: "user",
@@ -31,7 +43,7 @@ export function useChat(conversationId?: string) {
         setLoading(true);
 
         try {
-            const response = await chatApi.sendMessage(query, currentConversationId);
+            const response = await chatApi.sendMessage(query, currentConversationId, historySnapshot);
             const assistantMsg: ChatMessage = {
                 id: crypto.randomUUID(),
                 role: "assistant",
@@ -47,7 +59,7 @@ export function useChat(conversationId?: string) {
         } finally {
             setLoading(false);
         }
-    }, [currentConversationId]);
+    }, [messages, currentConversationId, isAuthenticated, startGuestSession]);
 
     const loadHistory = useCallback(async (convId: string) => {
         if (!isAuthenticated) return;
@@ -64,15 +76,7 @@ export function useChat(conversationId?: string) {
     }, [isAuthenticated]);
 
     const loadGuestHistory = useCallback(async () => {
-        const msgs: GuestMessage[] = await chatApi.getGuestHistory();
-        const mapped: ChatMessage[] = msgs.map((m, i) => ({
-            id: String(i),
-            role: m.role,
-            content: m.content,
-            related_experiences: m.related_experiences,
-            timestamp: m.timestamp,
-        }));
-        setMessages(mapped);
+        // Guest messages are not persisted — nothing to load
     }, []);
 
     return { messages, loading, currentConversationId, sendMessage, loadHistory, loadGuestHistory };

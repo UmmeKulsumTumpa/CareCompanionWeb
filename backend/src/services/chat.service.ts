@@ -1,6 +1,5 @@
 import * as conversationRepository from "../repositories/conversation.repository";
 import * as messageRepository from "../repositories/message.repository";
-import * as guestSessionRepository from "../repositories/guest_session.repository";
 import mlClient from "../utils/httpClient";
 import env from "../config/env";
 import { MLChatResponse } from "../types";
@@ -10,9 +9,10 @@ interface SendMessageParams {
     conversationId?: string;
     userId: string | null;
     guestSessionId: string | null;
+    guestChatHistory?: { role: string; content: string }[];
 }
 
-export async function sendMessage({ query, conversationId, userId, guestSessionId }: SendMessageParams) {
+export async function sendMessage({ query, conversationId, userId, guestSessionId, guestChatHistory }: SendMessageParams) {
     let chatHistory: { role: string; content: string }[] = [];
     let resolvedConversationId = conversationId;
 
@@ -27,6 +27,10 @@ export async function sendMessage({ query, conversationId, userId, guestSessionI
             env.chatHistoryLimit
         );
         chatHistory = recentMessages.map((m) => ({ role: m.role, content: m.content }));
+    } else if (guestSessionId && guestChatHistory) {
+        // Guests have no DB history — use history forwarded from the browser.
+        // Limit to last N turns to match the authenticated user behaviour.
+        chatHistory = guestChatHistory.slice(-env.chatHistoryLimit);
     }
 
     const mlResponse = await mlClient.post<MLChatResponse>("/api/v1/chat", {
@@ -48,15 +52,8 @@ export async function sendMessage({ query, conversationId, userId, guestSessionI
         await conversationRepository.updateTimestamp(resolvedConversationId);
     }
 
-    if (guestSessionId && !userId) {
-        await guestSessionRepository.appendMessage(guestSessionId, { role: "user", content: query, timestamp: new Date().toISOString() });
-        await guestSessionRepository.appendMessage(guestSessionId, {
-            role: "assistant",
-            content: answer,
-            related_experiences,
-            timestamp: new Date().toISOString(),
-        });
-    }
+    // Guest chats are intentionally not persisted to the database.
+    // The guest session exists only for middleware authentication purposes.
 
     return { answer, sources, related_experiences, conversationId: resolvedConversationId };
 }
@@ -73,10 +70,19 @@ export async function getConversationMessages(conversationId: string, userId: st
     return messageRepository.findByConversationId(conversationId);
 }
 
-export async function getGuestSessionMessages(guestSessionId: string) {
-    const session = await guestSessionRepository.findById(guestSessionId);
-    if (!session) {
-        throw Object.assign(new Error("Session not found or expired"), { status: 404 });
+export async function deleteConversation(conversationId: string, userId: string): Promise<void> {
+    const conversation = await conversationRepository.findById(conversationId);
+    if (!conversation || conversation.user_id !== userId) {
+        throw Object.assign(new Error("Conversation not found"), { status: 404 });
     }
-    return session.messages ?? [];
+    // Messages are deleted automatically via ON DELETE CASCADE on the DB
+    await conversationRepository.deleteById(conversationId);
+}
+
+export async function renameConversation(conversationId: string, userId: string, title: string): Promise<void> {
+    const conversation = await conversationRepository.findById(conversationId);
+    if (!conversation || conversation.user_id !== userId) {
+        throw Object.assign(new Error("Conversation not found"), { status: 404 });
+    }
+    await conversationRepository.updateTitle(conversationId, title.trim().slice(0, 100));
 }

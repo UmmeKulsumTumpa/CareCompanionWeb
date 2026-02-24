@@ -1,8 +1,21 @@
 import apiClient from "../utils/apiClient";
-import { SendMessageResponse, Conversation, Message, GuestMessage } from "@/types";
+import { SendMessageResponse, Conversation, Message } from "@/types";
 
-export async function sendMessage(query: string, conversationId?: string): Promise<SendMessageResponse> {
-    const { data } = await apiClient.post<SendMessageResponse>("/chat", { query, conversationId });
+interface ChatHistoryItem {
+    role: string;
+    content: string;
+}
+
+export async function sendMessage(
+    query: string,
+    conversationId?: string,
+    guestChatHistory?: ChatHistoryItem[],
+): Promise<SendMessageResponse> {
+    const { data } = await apiClient.post<SendMessageResponse>("/chat", {
+        query,
+        conversationId,
+        guestChatHistory,
+    });
     return data;
 }
 
@@ -18,7 +31,10 @@ export async function getConversationMessages(conversationId: string): Promise<M
     return data.messages;
 }
 
-export async function getGuestHistory(): Promise<GuestMessage[]> {
-    const { data } = await apiClient.get<{ messages: GuestMessage[] }>("/chat/guest-history");
-    return data.messages;
+export async function deleteConversation(conversationId: string): Promise<void> {
+    await apiClient.delete(`/chat/history/conversations/${conversationId}`);
+}
+
+export async function renameConversation(conversationId: string, title: string): Promise<void> {
+    await apiClient.patch(`/chat/history/conversations/${conversationId}`, { title });
 }

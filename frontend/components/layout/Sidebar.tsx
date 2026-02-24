@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { getConversations } from "@/lib/api/chat";
+import { getConversations, deleteConversation, renameConversation } from "@/lib/api/chat";
 import { Conversation } from "@/types";
 import {
     PlusIcon,
@@ -13,6 +13,8 @@ import {
     UserIcon,
     ChevronDownIcon,
     PanelLeftIcon,
+    TrashIcon,
+    PencilIcon,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -49,6 +51,9 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [loadingConvs, setLoadingConvs] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [renamingId, setRenamingId] = useState<string | null>(null);
+    const [renameValue, setRenameValue] = useState("");
+    const renameInputRef = useRef<HTMLInputElement>(null);
 
     const fetchConversations = useCallback(async () => {
         if (!isAuthenticated) return;
@@ -79,6 +84,31 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
         await logout();
     }
 
+    async function handleDelete(e: React.MouseEvent, id: string) {
+        e.stopPropagation();
+        await deleteConversation(id);
+        setConversations((prev) => prev.filter((c) => c.id !== id));
+        if (activeId === id) router.push("/chat");
+    }
+
+    function startRename(e: React.MouseEvent, conv: Conversation) {
+        e.stopPropagation();
+        setRenamingId(conv.id);
+        setRenameValue(conv.title ?? "");
+        setTimeout(() => renameInputRef.current?.select(), 30);
+    }
+
+    async function commitRename(id: string) {
+        const trimmed = renameValue.trim();
+        if (trimmed) {
+            await renameConversation(id, trimmed);
+            setConversations((prev) =>
+                prev.map((c) => (c.id === id ? { ...c, title: trimmed } : c))
+            );
+        }
+        setRenamingId(null);
+    }
+
     const grouped = groupConversations(conversations);
 
     const ConvGroup = ({ label, items }: { label: string; items: Conversation[] }) => {
@@ -87,19 +117,59 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
             <div className="mb-2">
                 <p className="px-3 py-1 text-xs font-medium text-gray-500">{label}</p>
                 {items.map((conv) => (
-                    <button
+                    <div
                         key={conv.id}
-                        onClick={() => handleSelectConv(conv.id)}
-                        title={conv.title ?? "Conversation"}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm truncate transition-colors duration-150 flex items-center gap-2 group ${
+                        className={`group relative flex items-center rounded-lg mb-0.5 ${
                             activeId === conv.id
-                                ? "bg-gray-200 text-gray-900 font-medium"
-                                : "text-gray-700 hover:bg-(--sidebar-hover)"
+                                ? "bg-gray-200"
+                                : "hover:bg-(--sidebar-hover)"
                         }`}
                     >
-                        <MessageSquareIcon size={14} className="shrink-0 text-gray-400 group-hover:text-gray-600" suppressHydrationWarning />
-                        <span className="truncate">{conv.title ?? "Conversation"}</span>
-                    </button>
+                        {renamingId === conv.id ? (
+                            <input
+                                ref={renameInputRef}
+                                value={renameValue}
+                                onChange={(e) => setRenameValue(e.target.value)}
+                                onBlur={() => commitRename(conv.id)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") commitRename(conv.id);
+                                    if (e.key === "Escape") setRenamingId(null);
+                                }}
+                                className="flex-1 mx-2 my-1 px-2 py-1 text-sm rounded border border-gray-300 outline-none focus:border-[#10a37f] bg-white"
+                            />
+                        ) : (
+                            <button
+                                onClick={() => handleSelectConv(conv.id)}
+                                title={conv.title ?? "Conversation"}
+                                className={`flex-1 text-left px-3 py-2 text-sm truncate transition-colors duration-150 flex items-center gap-2 ${
+                                    activeId === conv.id
+                                        ? "text-gray-900 font-medium"
+                                        : "text-gray-700"
+                                }`}
+                            >
+                                <MessageSquareIcon size={14} className="shrink-0 text-gray-400 group-hover:text-gray-600" suppressHydrationWarning />
+                                <span className="truncate">{conv.title ?? "Conversation"}</span>
+                            </button>
+                        )}
+                        {renamingId !== conv.id && (
+                            <div className="hidden group-hover:flex items-center pr-1 gap-0.5">
+                                <button
+                                    onClick={(e) => startRename(e, conv)}
+                                    title="Rename"
+                                    className="p-1.5 rounded hover:bg-gray-300 text-gray-400 hover:text-gray-700 transition-colors"
+                                >
+                                    <PencilIcon size={12} suppressHydrationWarning />
+                                </button>
+                                <button
+                                    onClick={(e) => handleDelete(e, conv.id)}
+                                    title="Delete"
+                                    className="p-1.5 rounded hover:bg-red-100 text-gray-400 hover:text-red-600 transition-colors"
+                                >
+                                    <TrashIcon size={12} suppressHydrationWarning />
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 ))}
             </div>
         );
