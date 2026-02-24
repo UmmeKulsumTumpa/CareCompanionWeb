@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { getConversations, deleteConversation, renameConversation } from "@/lib/api/chat";
 import { Conversation } from "@/types";
+import BrandLogo, { LogoMark } from "@/components/shared/BrandLogo";
+import { App } from "antd";
 import {
     PlusIcon,
     MessageSquareIcon,
@@ -23,6 +25,99 @@ interface SidebarProps {
     onToggle: () => void;
 }
 
+// ── ConvGroup must live OUTSIDE Sidebar so React never recreates its type ──
+interface ConvGroupProps {
+    label: string;
+    items: Conversation[];
+    activeId: string | null;
+    renamingId: string | null;
+    renameValue: string;
+    renameInputRef: React.RefObject<HTMLInputElement | null>;
+    onSelect: (id: string) => void;
+    onRenameChange: (val: string) => void;
+    onRenameCommit: (id: string) => void;
+    onRenameCancel: () => void;
+    onRenameStart: (e: React.MouseEvent, conv: Conversation) => void;
+    onDelete: (e: React.MouseEvent, id: string) => void;
+}
+
+function ConvGroup({
+    label,
+    items,
+    activeId,
+    renamingId,
+    renameValue,
+    renameInputRef,
+    onSelect,
+    onRenameChange,
+    onRenameCommit,
+    onRenameCancel,
+    onRenameStart,
+    onDelete,
+}: ConvGroupProps) {
+    if (items.length === 0) return null;
+    return (
+        <div className="mb-2">
+            <p className="px-3 py-1 text-xs font-medium text-gray-500">{label}</p>
+            {items.map((conv) => (
+                <div
+                    key={conv.id}
+                    className={`group relative flex items-center rounded-lg mb-0.5 ${
+                        activeId === conv.id ? "bg-gray-200" : "hover:bg-(--sidebar-hover)"
+                    }`}
+                >
+                    {renamingId === conv.id ? (
+                        <input
+                            ref={renameInputRef}
+                            value={renameValue}
+                            onChange={(e) => onRenameChange(e.target.value)}
+                            onBlur={() => onRenameCommit(conv.id)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") onRenameCommit(conv.id);
+                                if (e.key === "Escape") onRenameCancel();
+                            }}
+                            className="flex-1 mx-2 my-1 px-2 py-1 text-sm rounded border border-gray-300 outline-none focus:border-[#10a37f] bg-white"
+                        />
+                    ) : (
+                        <button
+                            onClick={() => onSelect(conv.id)}
+                            title={conv.title ?? "Conversation"}
+                            className={`flex-1 text-left px-3 py-2 text-sm truncate transition-colors duration-150 flex items-center gap-2 ${
+                                activeId === conv.id ? "text-gray-900 font-medium" : "text-gray-700"
+                            }`}
+                        >
+                            <MessageSquareIcon
+                                size={14}
+                                className="shrink-0 text-gray-400 group-hover:text-gray-600"
+                                suppressHydrationWarning
+                            />
+                            <span className="truncate">{conv.title ?? "Conversation"}</span>
+                        </button>
+                    )}
+                    {renamingId !== conv.id && (
+                        <div className="hidden group-hover:flex items-center pr-1 gap-0.5">
+                            <button
+                                onClick={(e) => onRenameStart(e, conv)}
+                                title="Rename"
+                                className="p-1.5 rounded hover:bg-gray-300 text-gray-400 hover:text-gray-700 transition-colors"
+                            >
+                                <PencilIcon size={12} suppressHydrationWarning />
+                            </button>
+                            <button
+                                onClick={(e) => onDelete(e, conv.id)}
+                                title="Delete"
+                                className="p-1.5 rounded hover:bg-red-100 text-gray-400 hover:text-red-600 transition-colors"
+                            >
+                                <TrashIcon size={12} suppressHydrationWarning />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
 function groupConversations(convs: Conversation[]) {
     const now = new Date();
     const today: Conversation[] = [];
@@ -30,7 +125,12 @@ function groupConversations(convs: Conversation[]) {
     const last7: Conversation[] = [];
     const older: Conversation[] = [];
 
-    convs.forEach((c) => {
+    // Newest first within every group
+    const sorted = [...convs].sort(
+        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
+
+    sorted.forEach((c) => {
         const d = new Date(c.updated_at);
         const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
         if (diffDays === 0) today.push(c);
@@ -48,12 +148,18 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
     const params = useSearchParams();
     const activeId = params.get("id");
 
+    const [mounted, setMounted] = useState(false);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [loadingConvs, setLoadingConvs] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [renamingId, setRenamingId] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState("");
     const renameInputRef = useRef<HTMLInputElement>(null);
+    const { modal, message } = App.useApp();
+
+    // Delay auth-dependent rendering until after client hydration to prevent
+    // SSR/client mismatch (server has no localStorage → isAuthenticated:false).
+    useEffect(() => { setMounted(true); }, []);
 
     const fetchConversations = useCallback(async () => {
         if (!isAuthenticated) return;
@@ -61,6 +167,8 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
         try {
             const data = await getConversations();
             setConversations(data);
+        } catch {
+            message.error("Failed to load conversations.");
         } finally {
             setLoadingConvs(false);
         }
@@ -86,9 +194,22 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
 
     async function handleDelete(e: React.MouseEvent, id: string) {
         e.stopPropagation();
-        await deleteConversation(id);
-        setConversations((prev) => prev.filter((c) => c.id !== id));
-        if (activeId === id) router.push("/chat");
+        modal.confirm({
+            title: "Delete conversation",
+            content: "Are you sure you want to delete this conversation? This action cannot be undone.",
+            okText: "Delete",
+            okType: "danger",
+            cancelText: "Cancel",
+            onOk: async () => {
+                try {
+                    await deleteConversation(id);
+                    setConversations((prev) => prev.filter((c) => c.id !== id));
+                    if (activeId === id) router.push("/chat");
+                } catch {
+                    message.error("Failed to delete conversation. Please try again.");
+                }
+            },
+        });
     }
 
     function startRename(e: React.MouseEvent, conv: Conversation) {
@@ -101,78 +222,34 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
     async function commitRename(id: string) {
         const trimmed = renameValue.trim();
         if (trimmed) {
-            await renameConversation(id, trimmed);
-            setConversations((prev) =>
-                prev.map((c) => (c.id === id ? { ...c, title: trimmed } : c))
-            );
+            try {
+                await renameConversation(id, trimmed);
+                setConversations((prev) =>
+                    prev.map((c) => (c.id === id ? { ...c, title: trimmed } : c))
+                );
+            } catch {
+                message.error("Failed to rename conversation. Please try again.");
+            }
         }
         setRenamingId(null);
     }
 
     const grouped = groupConversations(conversations);
 
-    const ConvGroup = ({ label, items }: { label: string; items: Conversation[] }) => {
-        if (items.length === 0) return null;
-        return (
-            <div className="mb-2">
-                <p className="px-3 py-1 text-xs font-medium text-gray-500">{label}</p>
-                {items.map((conv) => (
-                    <div
-                        key={conv.id}
-                        className={`group relative flex items-center rounded-lg mb-0.5 ${
-                            activeId === conv.id
-                                ? "bg-gray-200"
-                                : "hover:bg-(--sidebar-hover)"
-                        }`}
-                    >
-                        {renamingId === conv.id ? (
-                            <input
-                                ref={renameInputRef}
-                                value={renameValue}
-                                onChange={(e) => setRenameValue(e.target.value)}
-                                onBlur={() => commitRename(conv.id)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") commitRename(conv.id);
-                                    if (e.key === "Escape") setRenamingId(null);
-                                }}
-                                className="flex-1 mx-2 my-1 px-2 py-1 text-sm rounded border border-gray-300 outline-none focus:border-[#10a37f] bg-white"
-                            />
-                        ) : (
-                            <button
-                                onClick={() => handleSelectConv(conv.id)}
-                                title={conv.title ?? "Conversation"}
-                                className={`flex-1 text-left px-3 py-2 text-sm truncate transition-colors duration-150 flex items-center gap-2 ${
-                                    activeId === conv.id
-                                        ? "text-gray-900 font-medium"
-                                        : "text-gray-700"
-                                }`}
-                            >
-                                <MessageSquareIcon size={14} className="shrink-0 text-gray-400 group-hover:text-gray-600" suppressHydrationWarning />
-                                <span className="truncate">{conv.title ?? "Conversation"}</span>
-                            </button>
-                        )}
-                        {renamingId !== conv.id && (
-                            <div className="hidden group-hover:flex items-center pr-1 gap-0.5">
-                                <button
-                                    onClick={(e) => startRename(e, conv)}
-                                    title="Rename"
-                                    className="p-1.5 rounded hover:bg-gray-300 text-gray-400 hover:text-gray-700 transition-colors"
-                                >
-                                    <PencilIcon size={12} suppressHydrationWarning />
-                                </button>
-                                <button
-                                    onClick={(e) => handleDelete(e, conv.id)}
-                                    title="Delete"
-                                    className="p-1.5 rounded hover:bg-red-100 text-gray-400 hover:text-red-600 transition-colors"
-                                >
-                                    <TrashIcon size={12} suppressHydrationWarning />
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-        );
+    // Only use auth state after client has hydrated — prevents SSR/client mismatch
+    const showAuth = mounted && isAuthenticated;
+
+    const convGroupProps = {
+        activeId,
+        renamingId,
+        renameValue,
+        renameInputRef,
+        onSelect: handleSelectConv,
+        onRenameChange: setRenameValue,
+        onRenameCommit: commitRename,
+        onRenameCancel: () => setRenamingId(null),
+        onRenameStart: startRename,
+        onDelete: handleDelete,
     };
 
     /* ── Collapsed strip (icon-only) ── */
@@ -188,6 +265,9 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                     <PanelLeftIcon size={18} suppressHydrationWarning />
                 </button>
 
+                {/* Logo mark */}
+                <LogoMark size={26} />
+
                 {/* New chat */}
                 <button
                     onClick={handleNewChat}
@@ -199,7 +279,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
 
                 {/* Spacer + avatar at bottom */}
                 <div className="flex-1" />
-                {isAuthenticated && user ? (
+                {showAuth && user ? (
                     <div
                         title={user.name ?? user.email}
                         className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center mb-1 cursor-default"
@@ -231,15 +311,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                     >
                         <PanelLeftIcon size={18} suppressHydrationWarning />
                     </button>
-                    <Link
-                        href="/"
-                        className="flex items-center gap-1.5 px-1 py-1 rounded-lg hover:bg-(--sidebar-hover) transition-colors"
-                    >
-                        <div className="w-6 h-6 rounded-full bg-[#10a37f] flex items-center justify-center shrink-0">
-                            <span className="text-white text-[10px] font-bold">C</span>
-                        </div>
-                        <span className="font-semibold text-gray-800 text-sm">CareCompanion</span>
-                    </Link>
+                    <BrandLogo size="sm" />
                 </div>
                 <button
                     onClick={handleNewChat}
@@ -252,7 +324,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
 
             {/* History */}
             <div className="flex-1 overflow-y-auto px-2 py-2">
-                {!isAuthenticated ? (
+                {!showAuth ? (
                     <div className="px-3 py-4 text-center">
                         <p className="text-xs text-gray-500 mb-3">Sign in to save your chat history</p>
                         <div className="flex flex-col gap-2">
@@ -278,16 +350,16 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                     <p className="px-3 py-4 text-xs text-gray-400 text-center">No conversations yet</p>
                 ) : (
                     <>
-                        <ConvGroup label="Today" items={grouped.today} />
-                        <ConvGroup label="Yesterday" items={grouped.yesterday} />
-                        <ConvGroup label="Previous 7 Days" items={grouped.last7} />
-                        <ConvGroup label="Older" items={grouped.older} />
+                        <ConvGroup label="Today" items={grouped.today} {...convGroupProps} />
+                        <ConvGroup label="Yesterday" items={grouped.yesterday} {...convGroupProps} />
+                        <ConvGroup label="Previous 7 Days" items={grouped.last7} {...convGroupProps} />
+                        <ConvGroup label="Older" items={grouped.older} {...convGroupProps} />
                     </>
                 )}
             </div>
 
             {/* Bottom: user info */}
-            {isAuthenticated && user && (
+            {showAuth && user && (
                 <div className="px-2 pb-3 border-t border-(--border-color) pt-2 relative">
                     <button
                         onClick={() => setUserMenuOpen((v) => !v)}
@@ -323,7 +395,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                 </div>
             )}
 
-            {!isAuthenticated && (
+            {!showAuth && (
                 <div className="px-2 pb-3 border-t border-(--border-color) pt-2">
                     <div className="flex items-center gap-3 px-3 py-2">
                         <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center shrink-0">

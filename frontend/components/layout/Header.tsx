@@ -4,6 +4,7 @@ import { Button, Dropdown } from "antd";
 import { UserOutlined, LogoutOutlined, HistoryOutlined } from "@ant-design/icons";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import BrandLogo from "@/components/shared/BrandLogo";
 
 export default function Header() {
     const { user, isAuthenticated, logout } = useAuth();
@@ -25,10 +26,7 @@ export default function Header() {
 
     return (
         <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 shadow-sm">
-            <Link href="/" className="flex items-center gap-2">
-                <span className="text-xl font-semibold text-blue-700">CareCompanion</span>
-                <span className="text-xs text-gray-400 hidden sm:block">Alzheimer &amp; Dementia Support</span>
-            </Link>
+            <BrandLogo size="md" />
 
             <div className="flex items-center gap-3">
                 {isAuthenticated && user ? (

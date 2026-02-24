@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import * as chatApi from "@/lib/api/chat";
 import { Message, RelatedExperience, SourceReference } from "@/types";
-import useAuthStore from "@/store/authStore";
+import { useAppSelector } from "@/store/hooks";
 import { useGuestSession } from "@/hooks/useGuestSession";
 import { getGuestSessionId } from "@/lib/utils/guestSession";
 
@@ -17,10 +17,11 @@ interface ChatMessage {
 }
 
 export function useChat(conversationId?: string) {
-    const { isAuthenticated } = useAuthStore();
+    const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
     const { startGuestSession } = useGuestSession();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(conversationId);
 
     const sendMessage = useCallback(async (query: string) => {
@@ -41,6 +42,7 @@ export function useChat(conversationId?: string) {
         };
         setMessages((prev) => [...prev, userMsg]);
         setLoading(true);
+        setError(null);
 
         try {
             const response = await chatApi.sendMessage(query, currentConversationId, historySnapshot);
@@ -56,6 +58,11 @@ export function useChat(conversationId?: string) {
             if (response.conversationId) {
                 setCurrentConversationId(response.conversationId);
             }
+        } catch (err: any) {
+            const msg = err?.response?.data?.message ?? err?.message ?? "Something went wrong. Please try again.";
+            setError(msg);
+            // Remove the optimistic user message so the user can retry
+            setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
         } finally {
             setLoading(false);
         }
@@ -79,5 +86,5 @@ export function useChat(conversationId?: string) {
         // Guest messages are not persisted — nothing to load
     }, []);
 
-    return { messages, loading, currentConversationId, sendMessage, loadHistory, loadGuestHistory };
+    return { messages, loading, error, currentConversationId, sendMessage, loadHistory, loadGuestHistory };
 }

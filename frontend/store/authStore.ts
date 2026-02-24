@@ -1,31 +1,8 @@
-"use client";
-
-import { create } from "zustand";
-import { User } from "@/types";
-import { saveTokens, clearTokens } from "@/lib/utils/token";
-import { clearGuestSession } from "@/lib/utils/guestSession";
-
-interface AuthStore {
-    user: User | null;
-    isAuthenticated: boolean;
-    setAuth: (user: User, accessToken: string, refreshToken: string) => void;
-    clearAuth: () => void;
-}
-
-const useAuthStore = create<AuthStore>((set) => ({
-    user: null,
-    isAuthenticated: false,
-
-    setAuth: (user, accessToken, refreshToken) => {
-        saveTokens(accessToken, refreshToken);
-        clearGuestSession();
-        set({ user, isAuthenticated: true });
-    },
-
-    clearAuth: () => {
-        clearTokens();
-        set({ user: null, isAuthenticated: false });
-    },
-}));
-
-export default useAuthStore;
+// ⚠️  This file is no longer used.
+// Auth state is now managed by Redux Toolkit.
+//
+// Use the following instead:
+//   - Slice:   @/store/slices/authSlice
+//   - Store:   @/store/index
+//   - Hooks:   @/store/hooks  (useAppDispatch, useAppSelector)
+//   - Actions: setAuth, setUser, clearAuth from @/store/slices/authSlice

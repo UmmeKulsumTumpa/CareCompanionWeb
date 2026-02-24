@@ -20,7 +20,7 @@ const SUGGESTIONS = [
 ];
 
 export default function ChatWindow({ conversationId }: ChatWindowProps) {
-    const { messages, loading, sendMessage, loadHistory } = useChat(conversationId);
+    const { messages, loading, error, sendMessage, loadHistory } = useChat(conversationId);
     const bottomRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -69,6 +69,16 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
                             </MessageBubble>
                         ))}
                         {loading && <TypingIndicator />}
+                        {error && (
+                            <div className="flex gap-3 mb-4 items-start">
+                                <div className="w-7 h-7 rounded-full bg-red-100 flex items-center justify-center shrink-0 mt-0.5">
+                                    <span className="text-red-500 text-xs font-bold">!</span>
+                                </div>
+                                <div className="flex-1 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                                    <p className="text-sm text-red-600">{error}</p>
+                                </div>
+                            </div>
+                        )}
                         <div ref={bottomRef} />
                     </div>
                 )}

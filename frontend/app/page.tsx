@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useGuestSession } from "@/hooks/useGuestSession";
-import { ArrowRightIcon, HeartHandshakeIcon } from "lucide-react";
+import { ArrowRightIcon } from "lucide-react";
+import BrandLogo from "@/components/shared/BrandLogo";
 
 export default function LandingPage() {
     const router = useRouter();
@@ -35,9 +36,7 @@ export default function LandingPage() {
             <div className="max-w-2xl w-full">
                 {/* Logo */}
                 <div className="flex justify-center mb-6">
-                    <div className="w-14 h-14 rounded-2xl bg-[#10a37f] flex items-center justify-center shadow-md">
-                        <HeartHandshakeIcon size={28} className="text-white" />
-                    </div>
+                    <BrandLogo size="lg" href="/" />
                 </div>
 
                 <h1 className="text-3xl font-semibold text-gray-900 mb-2">

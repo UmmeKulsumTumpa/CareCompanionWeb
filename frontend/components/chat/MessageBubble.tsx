@@ -1,14 +1,77 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { SourceReference } from "@/types";
 import { LinkOutlined } from "@ant-design/icons";
-import { SparklesIcon } from "lucide-react";
+import { SparklesIcon, CopyIcon, CheckIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
 
 interface MessageBubbleProps {
     role: "user" | "assistant";
     content: string;
     sources?: SourceReference[];
     children?: React.ReactNode;
+}
+
+function ActionBar({ content }: { content: string }) {
+    const [copied, setCopied] = useState(false);
+    const [speaking, setSpeaking] = useState(false);
+    const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+    // Stop speech if component unmounts
+    useEffect(() => {
+        return () => {
+            if (utteranceRef.current) window.speechSynthesis?.cancel();
+        };
+    }, []);
+
+    function handleCopy() {
+        navigator.clipboard.writeText(content).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    }
+
+    function handleSpeak() {
+        if (!window.speechSynthesis) return;
+
+        if (speaking) {
+            window.speechSynthesis.cancel();
+            setSpeaking(false);
+            return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(content);
+        utterance.onend = () => setSpeaking(false);
+        utterance.onerror = () => setSpeaking(false);
+        utteranceRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+        setSpeaking(true);
+    }
+
+    return (
+        <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            <button
+                onClick={handleCopy}
+                title={copied ? "Copied!" : "Copy"}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+                {copied
+                    ? <CheckIcon size={14} className="text-[#10a37f]" />
+                    : <CopyIcon size={14} />
+                }
+            </button>
+            <button
+                onClick={handleSpeak}
+                title={speaking ? "Stop reading" : "Read aloud"}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+                {speaking
+                    ? <VolumeXIcon size={14} className="text-[#10a37f]" />
+                    : <Volume2Icon size={14} />
+                }
+            </button>
+        </div>
+    );
 }
 
 export default function MessageBubble({ role, content, sources, children }: MessageBubbleProps) {
@@ -25,7 +88,7 @@ export default function MessageBubble({ role, content, sources, children }: Mess
     }
 
     return (
-        <div className="flex gap-3 mb-6 items-start">
+        <div className="flex gap-3 mb-6 items-start group">
             {/* AI avatar */}
             <div className="w-7 h-7 rounded-full bg-[#10a37f] flex items-center justify-center shrink-0 mt-0.5">
                 <SparklesIcon size={13} className="text-white" />
@@ -52,6 +115,8 @@ export default function MessageBubble({ role, content, sources, children }: Mess
                 )}
 
                 {children}
+
+                <ActionBar content={content} />
             </div>
         </div>
     );
