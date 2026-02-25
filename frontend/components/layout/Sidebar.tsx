@@ -178,6 +178,13 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
         fetchConversations();
     }, [fetchConversations]);
 
+    // Refresh list whenever a new conversation is created (fired by useChat)
+    useEffect(() => {
+        const handler = () => { fetchConversations(); };
+        window.addEventListener("conversation-created", handler);
+        return () => window.removeEventListener("conversation-created", handler);
+    }, [fetchConversations]);
+
     function handleNewChat() {
         onNewChat?.();
         router.push("/chat");
@@ -311,7 +318,7 @@ export default function Sidebar({ onNewChat, isOpen, onToggle }: SidebarProps) {
                     >
                         <PanelLeftIcon size={18} suppressHydrationWarning />
                     </button>
-                    <BrandLogo size="sm" />
+                    <BrandLogo size="sm" href="/chat" />
                 </div>
                 <button
                     onClick={handleNewChat}

@@ -56,6 +56,12 @@ export function useChat(conversationId?: string) {
             };
             setMessages((prev) => [...prev, assistantMsg]);
             if (response.conversationId) {
+                // If this is a brand-new conversation, notify the sidebar to refresh its list
+                if (!currentConversationId) {
+                    window.dispatchEvent(
+                        new CustomEvent("conversation-created", { detail: { id: response.conversationId } })
+                    );
+                }
                 setCurrentConversationId(response.conversationId);
             }
         } catch (err: any) {
