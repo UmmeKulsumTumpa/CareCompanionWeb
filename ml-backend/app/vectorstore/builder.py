@@ -39,3 +39,11 @@ class VectorStoreBuilder:
 
     def get_collection_count(self) -> int:
         return self._collection.count()
+
+    def reset_collection(self) -> None:
+        """Delete and recreate the collection, removing all existing vectors."""
+        self._client.delete_collection(self._collection.name)
+        self._collection = self._client.get_or_create_collection(
+            name=self._collection.name,
+            metadata={"hnsw:space": "cosine"},
+        )

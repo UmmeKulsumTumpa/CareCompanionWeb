@@ -4,6 +4,7 @@ from app.pipelines.chat_pipeline import ChatPipeline
 from app.services.rag_service import RAGService
 from app.core.dependencies import get_retriever, get_inference_service
 from app.core.config import settings
+from app.utils.inference_optimizer import InferenceBackendUnavailable
 
 router = APIRouter()
 
@@ -23,5 +24,10 @@ def get_chat_pipeline(
 def chat(request: ChatRequest, pipeline: ChatPipeline = Depends(get_chat_pipeline)):
     try:
         return pipeline.run(request)
+    except InferenceBackendUnavailable as e:
+        raise HTTPException(
+            status_code=503,
+            detail=str(e),
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

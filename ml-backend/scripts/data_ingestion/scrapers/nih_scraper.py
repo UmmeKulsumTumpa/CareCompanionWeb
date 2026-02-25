@@ -16,9 +16,31 @@ SEED_URLS = [
     "/health/managing-personality-and-behavior-changes-alzheimers",
     "/health/alzheimers-caregiving-changes-communication-skills",
     "/health/what-dementia-symptoms-types-and-diagnosis",
+    "/health/alzheimers-caregiving-providing-personal-care",
+    "/health/alzheimers-caregiving-bathing",
+    "/health/alzheimers-caregiving-dressing",
+    "/health/alzheimers-caregiving-eating",
+    "/health/alzheimers-caregiving-home-safety",
+    "/health/alzheimers-caregiving-medicines",
+    "/health/alzheimers-caregiving-incontinence",
+    "/health/alzheimers-caregiving-sleep-problems-and-sundowning",
+    "/health/alzheimers-caregiving-wandering",
+    "/health/alzheimers-caregiving-depression",
+    "/health/alzheimers-caregiving-anxiety-and-agitation",
+    "/health/alzheimers-caregiving-hallucinations-and-delusions",
+    "/health/alzheimers-caregiving-repetitive-behaviors",
+    "/health/alzheimers-caregiving-depression-caregiver",
+    "/health/caring-for-yourself-when-you-are-a-caregiver",
+    "/health/prevent-falls-and-fractures",
+    "/health/urinary-incontinence-in-older-adults",
+    "/health/all-about-sleep",
 ]
 
-HEADERS = {"User-Agent": "Mozilla/5.0 (research-bot/1.0; educational use)"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+}
 
 
 def scrape_page(url: str) -> Dict:

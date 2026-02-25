@@ -13,6 +13,16 @@ SEED_URLS = [
     "/diseases-conditions/dementia/symptoms-causes/syc-20352013",
     "/diseases-conditions/dementia/diagnosis-treatment/drc-20352019",
     "/healthy-lifestyle/caregivers/in-depth/caregiver-stress/art-20044784",
+    "/diseases-conditions/sundowner-s-syndrome/symptoms-causes/syc-20353511",
+    "/diseases-conditions/alzheimers-disease/expert-answers/alzheimers-and-sleep/faq-20057725",
+    "/diseases-conditions/alzheimers-disease/in-depth/alzheimers/art-20048362",
+    "/diseases-conditions/alzheimers-disease/expert-answers/alzheimers-stages/faq-20058645",
+    "/diseases-conditions/urinary-incontinence/symptoms-causes/syc-20352808",
+    "/diseases-conditions/falls/symptoms-causes/syc-20352790",
+    "/diseases-conditions/falls/diagnosis-treatment/drc-20352797",
+    "/healthy-lifestyle/caregivers/in-depth/long-distance-caregiving/art-20047058",
+    "/healthy-lifestyle/caregivers/in-depth/caregiver-depression/art-20044784",
+    "/diseases-conditions/alzheimers-disease/expert-answers/alzheimers-early-onset/faq-20058099",
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (research-bot/1.0; educational use)"}

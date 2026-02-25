@@ -25,8 +25,8 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     def preload_models():
+        # Preload vector store; model is initialised lazily on first request
         get_retriever()
-        get_inference_service()
 
     return app
 
