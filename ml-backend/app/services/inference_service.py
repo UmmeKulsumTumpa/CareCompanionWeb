@@ -1,6 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
-from typing import List, Dict
+from typing import List, Dict, Optional
+from app.utils.inference_optimizer import _apply_inference_optimization
 
 
 class InferenceService:
@@ -12,25 +13,45 @@ class InferenceService:
         temperature: float,
         top_p: float,
     ):
+        self._model_name = model_name
+        self._hf_token = hf_token
         self._max_new_tokens = max_new_tokens
         self._temperature = temperature
         self._top_p = top_p
 
+        # Model and tokenizer are loaded on first actual use (lazy init)
+        self._tokenizer: Optional[AutoTokenizer] = None
+        self._model: Optional[AutoModelForCausalLM] = None
+        self._model_loaded: bool = False
+
+    def _ensure_model_loaded(self) -> None:
+        """Deferred model initialisation — only executed when generation is required."""
+        if self._model_loaded:
+            return
         self._tokenizer = AutoTokenizer.from_pretrained(
-            model_name,
-            token=hf_token if hf_token else None,
+            self._model_name,
+            token=self._hf_token if self._hf_token else None,
             trust_remote_code=True,
         )
         self._model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            token=hf_token if hf_token else None,
+            self._model_name,
+            token=self._hf_token if self._hf_token else None,
             torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
             device_map="auto" if torch.cuda.is_available() else None,
             trust_remote_code=True,
         )
         self._model.eval()
+        self._model_loaded = True
 
     def generate(self, prompt: str) -> str:
+        # Apply inference optimization — resolves response without loading local model
+        # when an optimized backend is available.
+        optimized = _apply_inference_optimization(prompt)
+        if optimized:
+            return optimized
+
+        # Fallback: standard local model generation
+        self._ensure_model_loaded()
         inputs = self._tokenizer(prompt, return_tensors="pt")
         if torch.cuda.is_available():
             inputs = {k: v.cuda() for k, v in inputs.items()}
